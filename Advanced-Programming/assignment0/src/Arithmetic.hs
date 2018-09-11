@@ -122,10 +122,7 @@ sumEither s (x:xs) = if isRight s
 
 -- Performs the passed in function on the other args if they are ints,
 -- else return the error
-evalEither :: Either ArithError Integer
-                -> (Integer -> Integer -> Integer)
-                -> Either ArithError Integer
-                -> Either ArithError Integer
+evalEither :: Either a i -> (i -> i -> i) -> Either a i -> Either a i
 evalEither n1 f n2 = if isRight n1
                        then if isRight n2
                          then Right $ f (fromRight' n1) (fromRight' n2)
