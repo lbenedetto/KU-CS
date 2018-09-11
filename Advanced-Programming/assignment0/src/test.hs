@@ -2,7 +2,11 @@ import Arithmetic
 import Definitions
 
 test'all :: Bool
-test'all = all (==True) (test'showExp ++ test'evalSimple ++ test'extendEnv ++ test'evalFull)
+test'all = all (==True) (test'showExp
+                      ++ test'evalSimple
+                      ++ test'extendEnv
+                      ++ test'evalFull
+                      ++ test'evalErr)
 
 testEquals ::(Eq a) => [(a, a)] -> [Bool]
 testEquals [] = []
@@ -63,7 +67,22 @@ test'evalFull = testEquals [
     (evalFull (Sum "y" (Cst 1) (Cst 100) (Mul (Var "y") (Var "x"))) env, 50500)]
     where env = extendEnv "x" 10 initEnv
 
--- test'evalErr
--- test'sumEither
--- test'evalEither
--- test'fromRight
+test'evalErr :: [Bool]
+test'evalErr = testEquals [
+    (evalErr (Cst 2) env, Right 2),
+    (evalErr (Cst (-1)) env, Right (-1)),
+    (evalErr (Add (Cst (-1)) (Cst 20)) env, Right 19),
+    (evalErr (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) env, Right 16),
+    (evalErr (Mul (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) (Cst 4)) env, Right 64),
+    (evalErr (Div (Mul (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) (Cst 4)) (Cst 5)) env, Right 12),
+    (evalErr (Pow (Div (Mul (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) (Cst 4)) (Cst 5)) (Cst 6)) env, Right 2985984),
+    (evalErr (Pow (Div (Mul (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) (Cst 4)) (Cst 5)) (Div (Mul (Sub (Add (Cst (-1)) (Cst 20)) (Cst 3)) (Cst 4)) (Cst 5))) env, Right $ 12 ^ 12),
+    (evalErr (If (Sub (Cst 2) (Cst 2)) (Div (Cst 3) (Cst 0)) (Cst 5)) env, Right 5),
+    (evalErr (Let {var = "x", aux = Cst 5,
+               body = Add (Let {var = "x", aux = Add (Cst 3) (Cst 4),
+               body = Mul (Var "x") (Var "x")})
+               (Var "x")}) env, Right 54),
+    (evalErr (Let "x" (Div (Cst 4) (Cst 0)) (Cst 5)) env, Left EDivZero),
+    (evalErr (Var "x") env, Right 10),
+    (evalErr (Sum "y" (Cst 1) (Cst 100) (Mul (Var "y") (Var "x"))) env, Right 50500)]
+    where env = extendEnv "x" 10 initEnv
