@@ -99,12 +99,12 @@ stderr s = Left $ s ++ "called with wrong number of type of arguments"
 
 (-:) :: Primitive
 (-:) [IntVal a, IntVal b] = Right $ IntVal (a-b)
-(-:) = stderr "-"
+(-:) _ = stderr "-"
 
 (%:) :: Primitive
-(%:) [IntVal a, IntVal 0]  = Left "Divide by zero error in %"
-(%:) [IntVal a, IntVal b]  = Right $ IntVal (a `mod` b)
-(%:) = stderr "%"
+(%:) [IntVal a, IntVal 0] = Left "Divide by zero error in %"
+(%:) [IntVal a, IntVal b] = Right $ IntVal (a `mod` b)
+(%:) _ = stderr "%"
 
 mkArray :: Primitive
 mkArray [IntVal n] | n >= 0 = return $ ArrayVal (replicate n UndefinedVal)
