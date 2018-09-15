@@ -87,16 +87,24 @@ stderr s = Left $ s ++ "called with wrong number of type of arguments"
 (<:) _ = stderr "<"
 
 (+:) :: Primitive
-(+:) = undefined
+(+:) [IntVal a, IntVal b] = Right $ IntVal (a+b)
+(+:) [StringVal a, StringVal b] = Right $ StringVal (a++b)
+(+:) [StringVal a, IntVal b] = Right $ StringVal (a ++ show b)
+(+:) [IntVal a, StringVal b] = Right $ StringVal (show a ++ b)
+(+:) _ = stderr "+"
 
 (*:) :: Primitive
-(*:) = undefined
+(*:) [IntVal a, IntVal b] = Right $ IntVal (a*b)
+(*:) _ = stderr "*"
 
 (-:) :: Primitive
-(-:) = undefined
+(-:) [IntVal a, IntVal b] = Right $ IntVal (a-b)
+(-:) = stderr "-"
 
 (%:) :: Primitive
-(%:) = undefined
+(%:) [IntVal a, IntVal 0]  = Left "Divide by zero error in %"
+(%:) [IntVal a, IntVal b]  = Right $ IntVal (a `mod` b)
+(%:) = stderr "%"
 
 mkArray :: Primitive
 mkArray [IntVal n] | n >= 0 = return $ ArrayVal (replicate n UndefinedVal)
