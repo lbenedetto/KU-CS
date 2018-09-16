@@ -155,7 +155,17 @@ evalExpr (Assign i e) = do
 evalExpr (Comma e1 e2) = do
   _ <- evalExpr e1
   evalExpr e2
-evalExpr (Compr a) = undefined
+evalExpr (Compr (ACBody e)) = do
+  r <- evalExpr e
+  return [res]
+evalExpr (Compr (ACIf e a)) = do
+    r <- evalExpr e
+    case r of
+      TrueVal -> evalExpr a
+      FalseVal -> return []
+      _ -> fail "Not a Bool"
+evalExpr (Compr (ACFor i e a)) = undefined
+
 
 runExpr :: Expr -> Either Error Value
 runExpr expr = case (runSubsM (evalExpr expr)) initialContext of
