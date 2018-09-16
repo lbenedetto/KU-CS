@@ -111,16 +111,24 @@ mkArray [IntVal n] | n >= 0 = return $ ArrayVal (replicate n UndefinedVal)
 mkArray _ = Left "Array() called with wrong number or type of arguments"
 
 modifyEnv :: (Env -> Env) -> SubsM ()
-modifyEnv f = undefined
+modifyEnv f = SubsM (\(e, _) -> Right ((), f e))
 
 putVar :: Ident -> Value -> SubsM ()
-putVar name val = undefined
+putVar name val = modifyEnv (\e -> Map.insert name val e )
 
 getVar :: Ident -> SubsM Value
-getVar name = undefined
+getVar name =
+  SubsM (\(e, _) ->
+    case Map.lookup name e of
+      Just r -> Right (r, e)
+      Nothing -> Left ("No ident \"" ++ name ++ "\" is defined"))
 
 getFunction :: FunName -> SubsM Primitive
-getFunction name = undefined
+getFunction name =
+  SubsM (\(e, p) ->
+    case Map.lookup name p of
+      Just r -> Right (r, e)
+      Nothing -> Left ("No fun named \"" ++ name ++ "\" is defined"))
 
 evalExpr :: Expr -> SubsM Value
 evalExpr expr = undefined
