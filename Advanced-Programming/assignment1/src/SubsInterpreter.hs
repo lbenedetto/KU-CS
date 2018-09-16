@@ -131,7 +131,19 @@ getFunction name =
       Nothing -> Left ("No fun named \"" ++ name ++ "\" is defined"))
 
 evalExpr :: Expr -> SubsM Value
-evalExpr expr = undefined
+evalExpr Undefined = return UndefinedVal
+evalExpr TrueConst = return TrueVal
+evalExpr FalseConst = return FalseVal
+evalExpr (Number n) = return $ IntVal n
+evalExpr (String s) = return $ StringVal s
+evalExpr (Array e) = undefined
+evalExpr (Var i) = getVar i
+evalExpr (Call n e) = undefined
+evalExpr (Assign i e) = undefined
+evalExpr (Comma e1 e2) = undefined
+evalExpr (Compr a) = undefined
 
 runExpr :: Expr -> Either Error Value
-runExpr expr = undefined
+runExpr expr = case (runSubsM (evalExpr expr)) initialContext of
+                 Right r -> Right $ fst r
+                 Left l -> Left l
