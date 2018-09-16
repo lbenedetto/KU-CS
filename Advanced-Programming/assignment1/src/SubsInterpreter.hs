@@ -47,7 +47,7 @@ initialContext = (Map.empty, initialPEnv)
 newtype SubsM a = SubsM {runSubsM :: Context -> Either Error (a, Env)}
 
 instance Monad SubsM where
-  return x = SubsM (\(e, p) -> Right (x, e))
+  return x = SubsM (\(e, _) -> Right (x, e))
   SubsM m >>= f = SubsM $ (\c -> case m c of
                              Right (a,e) -> runSubsM (f a) (e, snd c)
                              Left l -> Left l )
@@ -78,7 +78,7 @@ stderr s = Left $ s ++ "called with wrong number of type of arguments"
            rest <- ((===:) [ArrayVal xs, ArrayVal ys])
            return $ btv $ (curr == TrueVal) && (rest == TrueVal)
 (===:) [ArrayVal [], ArrayVal []] = Right TrueVal
-(===:) [a,b] = Right FalseVal
+(===:) [_,_] = Right FalseVal
 (===:) _ = stderr "==="
 
 (<:) :: Primitive
@@ -102,7 +102,7 @@ stderr s = Left $ s ++ "called with wrong number of type of arguments"
 (-:) _ = stderr "-"
 
 (%:) :: Primitive
-(%:) [IntVal a, IntVal 0] = Left "Divide by zero error in %"
+(%:) [IntVal _, IntVal 0] = Left "Divide by zero error in %"
 (%:) [IntVal a, IntVal b] = Right $ IntVal (a `mod` b)
 (%:) _ = stderr "%"
 
@@ -136,11 +136,25 @@ evalExpr TrueConst = return TrueVal
 evalExpr FalseConst = return FalseVal
 evalExpr (Number n) = return $ IntVal n
 evalExpr (String s) = return $ StringVal s
-evalExpr (Array e) = undefined
+evalExpr (Array []) = return (ArrayVal [])
 evalExpr (Var i) = getVar i
-evalExpr (Call n e) = undefined
-evalExpr (Assign i e) = undefined
-evalExpr (Comma e1 e2) = undefined
+evalExpr (Array (e:es)) = do
+  v <- evalExpr e
+  ArrayVal vs <- evalExpr (Array es)
+  return $ ArrayVal (v:vs)
+evalExpr (Call n es) = do
+  f <- getFunction n
+  ArrayVal vs <- evalExpr (Array es)
+  case (f vs) of
+    Right r -> return r
+    Left l -> fail l
+evalExpr (Assign i e) = do
+    v <- evalExpr e
+    putVar i v
+    return v
+evalExpr (Comma e1 e2) = do
+  _ <- evalExpr e1
+  evalExpr e2
 evalExpr (Compr a) = undefined
 
 runExpr :: Expr -> Either Error Value
