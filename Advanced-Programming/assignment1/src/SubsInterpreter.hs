@@ -136,8 +136,8 @@ evalExpr TrueConst = return TrueVal
 evalExpr FalseConst = return FalseVal
 evalExpr (Number n) = return $ IntVal n
 evalExpr (String s) = return $ StringVal s
-evalExpr (Array []) = return (ArrayVal [])
 evalExpr (Var i) = getVar i
+evalExpr (Array []) = return (ArrayVal [])
 evalExpr (Array (e:es)) = do
   v <- evalExpr e
   ArrayVal vs <- evalExpr (Array es)
@@ -157,12 +157,12 @@ evalExpr (Comma e1 e2) = do
   evalExpr e2
 evalExpr (Compr (ACBody e)) = do
   r <- evalExpr e
-  return [res]
+  return (ArrayVal [r])
 evalExpr (Compr (ACIf e a)) = do
     r <- evalExpr e
     case r of
-      TrueVal -> evalExpr a
-      FalseVal -> return []
+      TrueVal -> evalExpr (Compr a)
+      FalseVal -> return (ArrayVal [])
       _ -> fail "Not a Bool"
 evalExpr (Compr (ACFor i e a)) = undefined
 
