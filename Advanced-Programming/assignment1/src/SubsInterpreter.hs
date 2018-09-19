@@ -172,12 +172,21 @@ evalCompr (ACIf e a) = do
 evalCompr (ACFor i e a) = do
     xs <- evalExpr e
     case xs of
+      StringVal vs -> do
+        v <- mapM (\x -> do
+              putVar i x
+              evalCompr a) (convs vs)
+        return $ concat v
       ArrayVal vs -> do
         v <- mapM (\x -> do
               putVar i x
               evalCompr a) vs
         return $ concat v
       _ -> fail "Expression of ACFor is not an array"
+
+--Turns a String into an [StringVal]
+convs :: String -> [Value]
+convs s = [StringVal [a] | a <- s]
 
 runExpr :: Expr -> Either Error Value
 runExpr expr = case (runSubsM (evalExpr expr)) initialContext of
