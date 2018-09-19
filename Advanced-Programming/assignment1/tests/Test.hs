@@ -43,10 +43,10 @@ introExpr =
 introResult :: Value
 introResult = ArrayVal
   [ ArrayVal [IntVal n | n <- [0..9]]
-  , undefined
-  , undefined
-  , undefined
-  , undefined
+  , ArrayVal [IntVal (n * n) | n <- [0..9]]
+  , ArrayVal $ map IntVal $ [0,2..8]
+  , ArrayVal (replicate 100 $ StringVal "a")
+  , ArrayVal $ map IntVal $ [1 .. 100]
   ]
 
 scopeExpr :: Expr
@@ -57,5 +57,4 @@ scopeExpr =
      (Array [Var "x", Var "y"]))
 
 scopeResult :: Value
-scopeResult = ArrayVal
-  undefined
+scopeResult = ArrayVal [IntVal 42, ArrayVal $ map (StringVal . (:"")) "abc"]
