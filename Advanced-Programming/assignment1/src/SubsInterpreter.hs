@@ -48,7 +48,7 @@ newtype SubsM a = SubsM {runSubsM :: Context -> Either Error (a, Env)}
 
 instance Monad SubsM where
   return x = SubsM (\(e, _) -> Right (x, e))
-  SubsM m >>= f = SubsM $ (\c -> case m c of
+  SubsM m >>= f = SubsM (\c -> case m c of
                              Right (a,e) -> runSubsM (f a) (e, snd c)
                              Left l -> Left l )
   fail s = SubsM (\_ -> Left s)
@@ -60,7 +60,6 @@ instance Applicative SubsM where
   pure = return
   (<*>) = ap
 
---Bool To Value
 btv :: Bool -> Value
 btv v = if v then TrueVal else FalseVal
 
@@ -78,8 +77,8 @@ stderr s = Left $ s ++ "called with wrong number of type of arguments"
 (===:) [TrueVal, TrueVal] = Right TrueVal
 (===:) [FalseVal, FalseVal] = Right TrueVal
 (===:) [ArrayVal (x:xs), ArrayVal (y:ys)] =
-        do curr <- ((===:) [x,y])
-           rest <- ((===:) [ArrayVal xs, ArrayVal ys])
+        do curr <- (===:) [x,y]
+           rest <- (===:) [ArrayVal xs, ArrayVal ys]
            return $ btv $ (curr == TrueVal) && (rest == TrueVal)
 (===:) [ArrayVal [], ArrayVal []] = Right TrueVal
 (===:) [_,_] = Right FalseVal
@@ -118,7 +117,7 @@ modifyEnv :: (Env -> Env) -> SubsM ()
 modifyEnv f = SubsM (\(e, _) -> Right ((), f e))
 
 putVar :: Ident -> Value -> SubsM ()
-putVar name val = modifyEnv (\e -> Map.insert name val e )
+putVar name val = modifyEnv (Map.insert name val)
 
 getVar :: Ident -> SubsM Value
 getVar name =
@@ -156,7 +155,7 @@ evalExpr (Array (e:es)) = do
 evalExpr (Call n es) = do
   f <- getFunction n
   ArrayVal vs <- evalExpr (Array es)
-  case (f vs) of
+  case f vs of
     Right r -> return r
     Left l -> fail l
 evalExpr (Assign i e) = do
@@ -182,28 +181,28 @@ evalCompr (ACIf e a) = do
       _ -> fail "Not a Bool"
 evalCompr (ACFor i e a) = do
     xs <- evalExpr e
-    hasVar <- hasVar i
-    old <- if vtb hasVar then getVar i else return UndefinedVal
+    hv <- hasVar i
+    old <- if vtb hv then getVar i else return UndefinedVal
     case xs of
       StringVal vs -> do
         v <- mapM (\x -> do
               putVar i x
               evalCompr a) (convs vs)
-        if vtb hasVar then putVar i old else return ()
+        when (vtb hv) $ putVar i old
         return $ concat v
       ArrayVal vs -> do
         v <- mapM (\x -> do
               putVar i x
               evalCompr a) vs
-        if vtb hasVar then putVar i old else return ()
+        when (vtb hv) $ putVar i old
         return $ concat v
       _ -> fail "Expression of ACFor is not an array"
 
---Turns a String into an [StringVal]
+-- Turns a String into an [StringVal]
 convs :: String -> [Value]
 convs s = [StringVal [a] | a <- s]
 
 runExpr :: Expr -> Either Error Value
-runExpr expr = case (runSubsM (evalExpr expr)) initialContext of
+runExpr expr = case runSubsM (evalExpr expr) initialContext of
                  Right r -> Right $ fst r
                  Left l -> Left l
