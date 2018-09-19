@@ -155,21 +155,28 @@ evalExpr (Assign i e) = do
 evalExpr (Comma e1 e2) = do
   _ <- evalExpr e1
   evalExpr e2
-evalExpr (Compr (ACBody e)) = evalExpr e
-evalExpr (Compr (ACIf e a)) = do
+evalExpr (Compr a) = do
+  r <- evalCompr a
+  return $ ArrayVal r
+
+evalCompr :: ArrayCompr -> SubsM [Value]
+evalCompr (ACBody e) = do
+  r <- evalExpr e
+  return [r]
+evalCompr (ACIf e a) = do
     r <- evalExpr e
     case r of
-      TrueVal -> evalExpr (Compr a)
-      FalseVal -> return (ArrayVal [])
+      TrueVal -> evalCompr a
+      FalseVal -> return []
       _ -> fail "Not a Bool"
-evalExpr (Compr (ACFor i e a)) = do
+evalCompr (ACFor i e a) = do
     xs <- evalExpr e
     case xs of
       ArrayVal vs -> do
         v <- mapM (\x -> do
               putVar i x
-              evalExpr (Compr a)) vs
-        return (ArrayVal v)
+              evalCompr a) vs
+        return $ concat v
       _ -> fail "Expression of ACFor is not an array"
 
 runExpr :: Expr -> Either Error Value
