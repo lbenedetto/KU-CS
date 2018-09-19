@@ -64,6 +64,10 @@ instance Applicative SubsM where
 btv :: Bool -> Value
 btv v = if v then TrueVal else FalseVal
 
+vtb :: Value -> Bool
+vtb TrueVal = True
+vtb _ = False
+
 -- Get the standard error message
 stderr :: String -> Either Error Value
 stderr s = Left $ s ++ "called with wrong number of type of arguments"
@@ -123,6 +127,13 @@ getVar name =
       Just r -> Right (r, e)
       Nothing -> Left ("No ident \"" ++ name ++ "\" is defined"))
 
+hasVar :: Ident -> SubsM Value
+hasVar name =
+  SubsM (\(e, _) ->
+    case Map.lookup name e of
+      Just _ -> Right (TrueVal, e)
+      Nothing -> Right (FalseVal, e))
+
 getFunction :: FunName -> SubsM Primitive
 getFunction name =
   SubsM (\(e, p) ->
@@ -171,16 +182,20 @@ evalCompr (ACIf e a) = do
       _ -> fail "Not a Bool"
 evalCompr (ACFor i e a) = do
     xs <- evalExpr e
+    hasVar <- hasVar i
+    old <- if vtb hasVar then getVar i else return UndefinedVal
     case xs of
       StringVal vs -> do
         v <- mapM (\x -> do
               putVar i x
               evalCompr a) (convs vs)
+        if vtb hasVar then putVar i old else return ()
         return $ concat v
       ArrayVal vs -> do
         v <- mapM (\x -> do
               putVar i x
               evalCompr a) vs
+        if vtb hasVar then putVar i old else return ()
         return $ concat v
       _ -> fail "Expression of ACFor is not an array"
 
